@@ -4,7 +4,7 @@ mod utils;
 use core::{
     device::start_device_listening,
     gamepad::{start_gamepad_listing, stop_gamepad_listing},
-    audio::AudioCapture,
+    audio::{start_audio_capture, stop_audio_capture, AudioState},
     prevent_default, setup,
 };
 use tauri::{Manager, WindowEvent, generate_handler};
@@ -14,21 +14,6 @@ use tauri_plugin_custom_window::{
 };
 use utils::fs_extra::copy_dir;
 use std::sync::Mutex;
-
-#[tauri::command]
-fn start_audio_capture(
-    app: tauri::AppHandle,
-    state: tauri::State<'_, Mutex<AudioCapture>>,
-) -> Result<(), String> {
-    let mut capture = state.lock().unwrap();
-    capture.start(app)
-}
-
-#[tauri::command]
-fn stop_audio_capture(state: tauri::State<'_, Mutex<AudioCapture>>) {
-    let mut capture = state.lock().unwrap();
-    capture.stop();
-}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -52,7 +37,7 @@ pub fn run() {
             start_audio_capture,
             stop_audio_capture
         ])
-        .manage(Mutex::new(AudioCapture::new()))
+        .manage(AudioState::new())
         .plugin(tauri_plugin_admin_status::init())
         .plugin(tauri_plugin_custom_window::init())
         .plugin(tauri_plugin_os::init())

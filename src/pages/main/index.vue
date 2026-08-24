@@ -13,6 +13,7 @@ import { nth } from 'es-toolkit/compat'
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 
 import { useAppMenu } from '@/composables/useAppMenu'
+import { useAudio } from '@/composables/useAudio'
 import { useDevice } from '@/composables/useDevice'
 import { useGamepad } from '@/composables/useGamepad'
 import { useModel } from '@/composables/useModel'
@@ -38,8 +39,12 @@ const generalStore = useGeneralStore()
 const resizing = ref(false)
 const backgroundImagePath = ref<string>()
 const { stickActive } = useGamepad()
+const { volume, start: startAudio } = useAudio()
 
-onMounted(startListening)
+onMounted(() => {
+  startListening()
+  startAudio() // <--- adicione esta linha
+})
 
 onUnmounted(handleDestroy)
 
@@ -126,6 +131,10 @@ watch(() => generalStore.app.taskbarVisible, setTaskbarVisibility, { immediate: 
 watch(() => catStore.model.motionSound, live2d.setMotionSoundEnabled, { immediate: true })
 
 watch(() => catStore.model.maxFPS, live2d.setMaxFPS, { immediate: true })
+
+watch(volume, (vol) => {
+  live2d.setParameterValue('ParamMouthOpenY', vol)
+})
 
 useTauriListen<MotionInfo>(LISTEN_KEY.START_MOTION, ({ payload }) => {
   live2d.startMotion(payload)

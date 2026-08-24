@@ -1,3 +1,5 @@
+import type { UnlistenFn } from '@tauri-apps/api/event'
+
 import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { onUnmounted, ref } from 'vue'
@@ -5,26 +7,28 @@ import { onUnmounted, ref } from 'vue'
 export function useAudio() {
   const volume = ref(0)
   const isCapturing = ref(false)
-  let unlisten: (() => void) | null = null
 
-  // Suavização (evita boca tremendo)
+  let unlisten: UnlistenFn | null = null
   let smoothed = 0
-  const smoothing = 0.35 // 0.2 = mais suave | 0.5 = mais responsivo
+
+  // 0.25 = mais suave | 0.45 = mais responsivo
+  const SMOOTHING = 0.32
 
   const start = async () => {
     if (isCapturing.value) return
 
     try {
-      await invoke('start_audio_capture')
-      isCapturing.value = true
-
       unlisten = await listen<number>('audio-volume', (event) => {
         const raw = event.payload
-        smoothed = smoothed * (1 - smoothing) + raw * smoothing
+        // Suavização exponencial (evita tremor na boca)
+        smoothed = smoothed * (1 - SMOOTHING) + raw * SMOOTHING
         volume.value = smoothed
       })
+
+      await invoke('start_audio_capture')
+      isCapturing.value = true
     } catch (err) {
-      console.error('Erro ao iniciar captura de áudio:', err)
+      console.error('[useAudio] Falha ao iniciar captura:', err)
     }
   }
 
@@ -32,17 +36,17 @@ export function useAudio() {
     if (!isCapturing.value) return
 
     try {
-      await invoke('stop_audio_capture')
-      isCapturing.value = false
-      volume.value = 0
-      smoothed = 0
-
       if (unlisten) {
         unlisten()
         unlisten = null
       }
+
+      await invoke('stop_audio_capture')
+      isCapturing.value = false
+      volume.value = 0
+      smoothed = 0
     } catch (err) {
-      console.error('Erro ao parar captura de áudio:', err)
+      console.error('[useAudio] Falha ao parar captura:', err)
     }
   }
 
