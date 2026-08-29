@@ -3,9 +3,7 @@
   "FileReferences": {
     "Moc": "demomodel.moc3",
     "Textures": [
-      "demomodel.1024/texture_00.png",
-      "demomodel.1024/texture_01.png",
-      "demomodel.1024/texture_02.png"
+      "demomodel.1024/texture_00.png"
     ],
     "DisplayInfo": "demomodel.cdi3.json",
     "Expressions": [

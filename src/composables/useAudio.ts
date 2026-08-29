@@ -20,7 +20,6 @@ export function useAudio() {
     try {
       unlisten = await listen<number>('audio-volume', (event) => {
         const raw = event.payload
-        // Suavização exponencial (evita tremor na boca)
         smoothed = smoothed * (1 - SMOOTHING) + raw * SMOOTHING
         volume.value = smoothed
       })

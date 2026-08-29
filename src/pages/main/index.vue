@@ -10,7 +10,7 @@ import { exists, readDir } from '@tauri-apps/plugin-fs'
 import { useDebounceFn, useEventListener } from '@vueuse/core'
 import { round } from 'es-toolkit'
 import { nth } from 'es-toolkit/compat'
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
 
 import { useAppMenu } from '@/composables/useAppMenu'
 import { useAudio } from '@/composables/useAudio'
@@ -39,11 +39,17 @@ const generalStore = useGeneralStore()
 const resizing = ref(false)
 const backgroundImagePath = ref<string>()
 const { stickActive } = useGamepad()
+
 const { volume, start: startAudio } = useAudio()
 
 onMounted(() => {
   startListening()
-  startAudio() // <--- adicione esta linha
+  startAudio()
+})
+
+watchEffect(() => {
+  const vol = volume.value
+  live2d.setParameterValue('ParamMouthOpenY', 1 - vol)
 })
 
 onUnmounted(handleDestroy)

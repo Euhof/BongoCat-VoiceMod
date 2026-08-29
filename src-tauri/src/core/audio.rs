@@ -1,4 +1,5 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc, Mutex,
@@ -24,15 +25,19 @@ pub fn start_audio_capture(
     app: AppHandle,
     state: State<'_, AudioState>,
 ) -> Result<(), String> {
+    println!("[audio] Iniciando captura...");
     if state.is_running.load(Ordering::SeqCst) {
         return Ok(());
     }
 
     let host = cpal::default_host();
+
     let device = host
         .default_input_device()
         .ok_or_else(|| "Nenhum microfone encontrado".to_string())?;
+    println!("[audio] Usando default input device");
 
+    
     let config = device
         .default_input_config()
         .map_err(|e| format!("Erro ao obter configuração do microfone: {e}"))?;
@@ -132,10 +137,10 @@ fn calculate_volume(data: &[f32]) -> f32 {
     let rms = (sum_squares / data.len() as f32).sqrt();
 
     // Ganho — aumente se a boca abrir pouco, diminua se abrir demais
-    let mut volume = (rms * 9.0).clamp(0.0, 1.0);
+    let mut volume = (rms * 25.0).clamp(0.0, 1.0);
 
     // Threshold de silêncio (evita a boca tremer com ruído de fundo)
-    if volume < 0.04 {
+    if volume < 0.02 {
         volume = 0.0;
     }
 
