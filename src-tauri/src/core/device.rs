@@ -32,138 +32,34 @@ fn is_wayland_session() -> bool {
             .unwrap_or(false)
 }
 
-#[cfg(target_os = "linux")]
-fn start_wayland_listener<R: Runtime>(app_handle: AppHandle<R>) -> Result<(), String> {
-    use evdev::{InputEventKind, Key};
+// rdev is the portable backend. Its Key names already match the frontend
+// convention for most keys, so only the keys whose model names differ are
+// normalized here.
+fn rdev_key_to_frontend(key: rdev::Key) -> String {
+    use rdev::Key;
 
-    // evdev is used only for Linux/Wayland, where rdev::listen cannot
-    // receive global input events from the compositor session.
-    for (path, device) in evdev::enumerate() {
-        let has_keys = device
-            .supported_keys()
-            .map(|keys| keys.iter().next().is_some())
-            .unwrap_or(false);
-
-        if !has_keys {
-            continue;
-        }
-
-        let name = device.name().unwrap_or("unknown").to_string();
-        println!("[device] Opening keyboard/mouse: {} ({:?})", name, path);
-
-        let app = app_handle.clone();
-
-        thread::spawn(move || {
-            let mut device = device;
-
-            loop {
-                if !IS_LISTENING.load(Ordering::SeqCst) {
-                    break;
-                }
-
-                match device.fetch_events() {
-                    Ok(events) => {
-                        for event in events {
-                            if let InputEventKind::Key(key) = event.kind() {
-                                let value = event.value();
-                                let pressed = value == 1 || value == 2;
-                                let released = value == 0;
-                                let frontend_key = key_to_frontend(key);
-
-                                eprintln!(
-                                    "[device/evdev] raw={:?} -> frontend={} value={}",
-                                    key, frontend_key, value
-                                );
-
-                                let kind = if is_mouse_button(key) {
-                                    if pressed {
-                                        Some(DeviceEventKind::MousePress)
-                                    } else if released {
-                                        Some(DeviceEventKind::MouseRelease)
-                                    } else {
-                                        None
-                                    }
-                                } else if pressed {
-                                    Some(DeviceEventKind::KeyboardPress)
-                                } else if released {
-                                    Some(DeviceEventKind::KeyboardRelease)
-                                } else {
-                                    None
-                                };
-
-                                if let Some(kind) = kind {
-                                    let _ = app.emit(
-                                        "device-changed",
-                                        DeviceEvent {
-                                            kind,
-                                            value: json!(frontend_key),
-                                        },
-                                    );
-                                }
-                            }
-                        }
-                    }
-                    Err(error) => {
-                        eprintln!("[device/evdev] Error in {}: {error}", name);
-                        thread::sleep(Duration::from_millis(100));
-                    }
-                }
-            }
-        });
+    match key {
+        Key::F1
+        | Key::F2
+        | Key::F3
+        | Key::F4
+        | Key::F5
+        | Key::F6
+        | Key::F7
+        | Key::F8
+        | Key::F9
+        | Key::F10
+        | Key::F11
+        | Key::F12
+        | Key::Function => "Fn".into(),
+        Key::MetaLeft | Key::MetaRight => "Meta".into(),
+        Key::BackSlash | Key::IntlBackslash => "Slash".into(),
+        other => format!("{:?}", other),
     }
-
-    // evdev reports relative mouse movement. Keep the existing Hyprland
-    // cursor position path so the frontend continues to receive absolute
-    // coordinates in exactly the same format as rdev::MouseMove.
-    let app_mouse = app_handle.clone();
-    thread::spawn(move || {
-        let mut last_x = -1.0;
-        let mut last_y = -1.0;
-
-        loop {
-            if !IS_LISTENING.load(Ordering::SeqCst) {
-                break;
-            }
-
-            if let Ok(output) = std::process::Command::new("hyprctl")
-                .args(["cursorpos"])
-                .output()
-            {
-                if output.status.success() {
-                    let pos = String::from_utf8_lossy(&output.stdout);
-                    let pos = pos.trim();
-
-                    if let Some((x_str, y_str)) = pos.split_once(',') {
-                        if let (Ok(x), Ok(y)) = (
-                            x_str.trim().parse::<f64>(),
-                            y_str.trim().parse::<f64>(),
-                        ) {
-                            if (x - last_x).abs() > 0.5 || (y - last_y).abs() > 0.5 {
-                                last_x = x;
-                                last_y = y;
-
-                                let _ = app_mouse.emit(
-                                    "device-changed",
-                                    DeviceEvent {
-                                        kind: DeviceEventKind::MouseMove,
-                                        value: json!({ "x": x, "y": y }),
-                                    },
-                                );
-                            }
-                        }
-                    }
-                }
-            }
-
-            thread::sleep(Duration::from_millis(16));
-        }
-    });
-
-    Ok(())
 }
 
 #[cfg(target_os = "linux")]
-fn key_to_frontend(key: evdev::Key) -> String {
+fn evdev_key_to_frontend(key: evdev::Key) -> String {
     use evdev::Key;
 
     match key {
@@ -239,14 +135,14 @@ fn key_to_frontend(key: evdev::Key) -> String {
         Key::BTN_RIGHT => "Right".into(),
         Key::BTN_MIDDLE => "Middle".into(),
         other => {
-            let s = format!("{:?}", other);
-            s.strip_prefix("KEY_").unwrap_or(&s).to_string()
+            let value = format!("{:?}", other);
+            value.strip_prefix("KEY_").unwrap_or(&value).to_string()
         }
     }
 }
 
 #[cfg(target_os = "linux")]
-fn is_mouse_button(key: evdev::Key) -> bool {
+fn is_evdev_mouse_button(key: evdev::Key) -> bool {
     use evdev::Key;
 
     matches!(
@@ -261,42 +157,8 @@ fn is_mouse_button(key: evdev::Key) -> bool {
     )
 }
 
-#[cfg(not(target_os = "linux"))]
-fn key_to_frontend(key: rdev::Key) -> String {
-    use rdev::Key;
-
-    match key {
-        Key::F1
-        | Key::F2
-        | Key::F3
-        | Key::F4
-        | Key::F5
-        | Key::F6
-        | Key::F7
-        | Key::F8
-        | Key::F9
-        | Key::F10
-        | Key::F11
-        | Key::F12
-        | Key::Function => "Fn".into(),
-        Key::MetaLeft | Key::MetaRight => "Meta".into(),
-        Key::F13 => "Fn".into(),
-        other => format!("{:?}", other),
-    }
-}
-
-#[cfg(target_os = "linux")]
 fn start_rdev_listener<R: Runtime>(app_handle: AppHandle<R>) -> Result<(), String> {
-    start_rdev_listener_impl(app_handle)
-}
-
-#[cfg(not(target_os = "linux"))]
-fn start_rdev_listener<R: Runtime>(app_handle: AppHandle<R>) -> Result<(), String> {
-    start_rdev_listener_impl(app_handle)
-}
-
-fn start_rdev_listener_impl<R: Runtime>(app_handle: AppHandle<R>) -> Result<(), String> {
-    use rdev::{Event, EventType, listen};
+    use rdev::{listen, Event, EventType};
 
     let callback = move |event: Event| {
         let device_event = match event.event_type {
@@ -314,11 +176,11 @@ fn start_rdev_listener_impl<R: Runtime>(app_handle: AppHandle<R>) -> Result<(), 
             },
             EventType::KeyPress(key) => DeviceEvent {
                 kind: DeviceEventKind::KeyboardPress,
-                value: json!(key_to_frontend(key)),
+                value: json!(rdev_key_to_frontend(key)),
             },
             EventType::KeyRelease(key) => DeviceEvent {
                 kind: DeviceEventKind::KeyboardRelease,
-                value: json!(key_to_frontend(key)),
+                value: json!(rdev_key_to_frontend(key)),
             },
             _ => return,
         };
@@ -327,6 +189,128 @@ fn start_rdev_listener_impl<R: Runtime>(app_handle: AppHandle<R>) -> Result<(), 
     };
 
     listen(callback).map_err(|error| format!("Failed to listen device: {error:?}"))
+}
+
+#[cfg(target_os = "linux")]
+fn start_wayland_listener<R: Runtime>(app_handle: AppHandle<R>) -> Result<(), String> {
+    use evdev::InputEventKind;
+
+    for (path, device) in evdev::enumerate() {
+        let has_keys = device
+            .supported_keys()
+            .map(|keys| keys.iter().next().is_some())
+            .unwrap_or(false);
+
+        if !has_keys {
+            continue;
+        }
+
+        let name = device.name().unwrap_or("unknown").to_string();
+        println!("[device] Opening keyboard/mouse: {} ({:?})", name, path);
+
+        let app = app_handle.clone();
+
+        thread::spawn(move || {
+            let mut device = device;
+
+            loop {
+                if !IS_LISTENING.load(Ordering::SeqCst) {
+                    break;
+                }
+
+                match device.fetch_events() {
+                    Ok(events) => {
+                        for event in events {
+                            if let InputEventKind::Key(key) = event.kind() {
+                                let value = event.value();
+                                let pressed = value == 1 || value == 2;
+                                let released = value == 0;
+                                let frontend_key = evdev_key_to_frontend(key);
+
+                                let kind = if is_evdev_mouse_button(key) {
+                                    if pressed {
+                                        Some(DeviceEventKind::MousePress)
+                                    } else if released {
+                                        Some(DeviceEventKind::MouseRelease)
+                                    } else {
+                                        None
+                                    }
+                                } else if pressed {
+                                    Some(DeviceEventKind::KeyboardPress)
+                                } else if released {
+                                    Some(DeviceEventKind::KeyboardRelease)
+                                } else {
+                                    None
+                                };
+
+                                if let Some(kind) = kind {
+                                    let _ = app.emit(
+                                        "device-changed",
+                                        DeviceEvent {
+                                            kind,
+                                            value: json!(frontend_key),
+                                        },
+                                    );
+                                }
+                            }
+                        }
+                    }
+                    Err(error) => {
+                        eprintln!("[device/evdev] Error in {}: {error}", name);
+                        thread::sleep(Duration::from_millis(100));
+                    }
+                }
+            }
+        });
+    }
+
+    // evdev reports relative movement. Hyprland gives us the absolute cursor
+    // position, preserving the same MouseMove payload used by rdev.
+    let app_mouse = app_handle.clone();
+    thread::spawn(move || {
+        let mut last_x = -1.0;
+        let mut last_y = -1.0;
+
+        loop {
+            if !IS_LISTENING.load(Ordering::SeqCst) {
+                break;
+            }
+
+            if let Ok(output) = std::process::Command::new("hyprctl")
+                .args(["cursorpos"])
+                .output()
+            {
+                if output.status.success() {
+                    let position = String::from_utf8_lossy(&output.stdout);
+                    let position = position.trim();
+
+                    if let Some((x_str, y_str)) = position.split_once(',') {
+                        if let (Ok(x), Ok(y)) = (
+                            x_str.trim().parse::<f64>(),
+                            y_str.trim().parse::<f64>(),
+                        ) {
+                            if (x - last_x).abs() > 0.5 || (y - last_y).abs() > 0.5 {
+                                last_x = x;
+                                last_y = y;
+
+                                let _ = app_mouse.emit(
+                                    "device-changed",
+                                    DeviceEvent {
+                                        kind: DeviceEventKind::MouseMove,
+                                        value: json!({ "x": x, "y": y }),
+                                    },
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+
+            thread::sleep(Duration::from_millis(16));
+        }
+    });
+
+    Ok(())
 }
 
 #[command]
