@@ -65,7 +65,7 @@
   "plugins": {
     "updater": {
       "dangerousInsecureTransportProtocol": true,
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEVBRjJFMzE3MjEwMUZEMTAKUldRUS9RRWhGK1B5NmdkemhKcUFrVjZBQXlzdExpakdWVEJDeU9XckVsbzV2cFIycVJOempWa2UK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEIyQUE2NDk4NkRCNzE5MUQKUldRZEdiZHRtR1Nxc2lqVTg3L3BaL0w3aGpPQnA4bWhQMVFOYWlNZ0tJaXllaHJLYUdtMDIrVWUK",
       "endpoints": [
         "http://api.upgrade.toolsetlink.com/v1/tauri/upgrade?tauriKey=KtGlsZUVXmWfjkRKCuqpfw&versionName={{current_version}}&target={{target}}&arch={{arch}}&appointVersionName=&devModelKey=&devKey=",
         "https://gh-proxy.com/github.com/ayangweb/BongoCat/releases/latest/download/latest.json"

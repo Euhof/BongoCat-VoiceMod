@@ -15,7 +15,7 @@ importers:
         specifier: ^1.0.6
         version: 1.1.2(vue@3.5.41(typescript@5.9.3))
       '@tauri-apps/api':
-        specifier: ^2.10.1
+        specifier: ^2.11.1
         version: 2.11.1
       '@tauri-apps/plugin-autostart':
         specifier: ^2.5.1
@@ -33,7 +33,7 @@ importers:
         specifier: ^2.3.1
         version: 2.3.2
       '@tauri-apps/plugin-log':
-        specifier: ^2.8.0
+        specifier: ^2.9.0
         version: 2.9.0
       '@tauri-apps/plugin-opener':
         specifier: ^2.5.3
@@ -121,7 +121,7 @@ importers:
         specifier: ^1.2.5
         version: 1.2.9
       '@tauri-apps/cli':
-        specifier: ^2.10.1
+        specifier: ^2.11.1
         version: 2.11.4
       '@types/is-url':
         specifier: ^1.2.32

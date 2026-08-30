@@ -27,7 +27,7 @@ tauri-plugin-os = "2"
 tauri-plugin-process = "2"
 tauri-plugin-opener = "2"
 tauri-plugin-pinia = "3"
-tauri-plugin-log = "2"
+tauri-plugin-log = "2.9.0"
 tauri-plugin-updater = "2"
 tauri-plugin-prevent-default = "1"
 tauri-plugin-single-instance = "2"
@@ -40,9 +40,12 @@ tauri-plugin-clipboard-manager = "2"
 tauri-plugin-global-shortcut = "2"
 tauri-plugin-locale = "2"
 rdev = { git = "https://github.com/kunkunsh/rdev" }
-gilrs = { git = "https://github.com/ayangweb/gilrs", default-features = false, features = ["xinput"] }
-cpal = { version = "0.18.2", features = ["pipewire"] }
 evdev = "0.12"
+gilrs = { git = "https://github.com/ayangweb/gilrs", default-features = false, features = ["xinput"] }
+[target."cfg(target_os = \"linux\")".dependencies]
+cpal = { version = "0.18.2", features = ["pipewire"] }
+[target."cfg(not(target_os = \"linux\"))".dependencies]
+cpal = "0.18.2"
 
 [target."cfg(target_os = \"macos\")".dependencies]
 tauri-nspanel.workspace = true

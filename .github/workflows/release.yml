@@ -8,6 +8,8 @@ on:
 
 jobs:
   create-release:
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,7 +28,7 @@ jobs:
         id: create_release
         run: npx changelogithub --draft --name ${{ steps.vars.outputs.tag }}
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
 
   build-app:
     needs: create-release
@@ -44,14 +46,10 @@ jobs:
           - platform: windows-latest
             target: x86_64-pc-windows-msvc
           - platform: windows-latest
-            target: i686-pc-windows-msvc
-          - platform: windows-latest
             target: aarch64-pc-windows-msvc
 
           - platform: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
-          - platform: ubuntu-22.04-arm
-            target: aarch64-unknown-linux-gnu
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -96,12 +94,12 @@ jobs:
         env:
           CI: false
           PLATFORM: ${{ matrix.platform }}
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: BongoCat ${{ needs.create-release.outputs.APP_VERSION }}
+          releaseName: BongoCat ${{ github.ref_name }}
           releaseBody: ''
           releaseDraft: true
           prerelease: false
