@@ -55,13 +55,17 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: Setup node
         uses: actions/setup-node@v4
         with:
           node-version: 22
-      - uses: pnpm/action-setup@v3
-        with:
-          version: latest
+          cache: pnpm
 
       - name: Install rust target
         run: rustup target add ${{ matrix.target }}
@@ -79,12 +83,6 @@ jobs:
         uses: swatinem/rust-cache@v2
         with:
           workspaces: target
-
-      - name: Sync node version and setup cache
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
 
       - name: Install front-end dependencies
         run: pnpm install --frozen-lockfile
