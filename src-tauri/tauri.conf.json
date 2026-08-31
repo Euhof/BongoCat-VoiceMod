@@ -60,7 +60,12 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": ["assets/tray.png", "assets/models"]
+    "resources": ["assets/tray.png", "assets/models"],
+    "linux": {
+      "appimage": {
+        "bundleMediaFramework": true
+      }
+    }
   },
   "plugins": {
     "updater": {
