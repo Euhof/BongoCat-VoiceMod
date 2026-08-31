@@ -146,17 +146,21 @@ jobs:
         run: |
           set -e
 
-          APPDIR="target/release/bundle/appimage/BongoCat.AppDir"
-          VERSION="${GITHUB_REF_NAME#v}"
-          OUTPUT="target/release/bundle/appimage/BongoCat_${VERSION}_amd64.AppImage"
-
           echo "==> Procurando AppDir..."
 
-          if [ ! -d "$APPDIR" ]; then
-            echo "ERRO: AppDir não encontrado:"
-            echo "$APPDIR"
+          APPDIR="$(find target -type d -name 'BongoCat.AppDir' -print -quit)"
+
+          if [ -z "$APPDIR" ]; then
+            echo "ERRO: nenhum AppDir encontrado."
+            find target/release/bundle -maxdepth 4 -type d 2>/dev/null || true
             exit 1
           fi
+
+          echo "==> AppDir encontrado:"
+          echo "$APPDIR"
+
+          VERSION="${GITHUB_REF_NAME#v}"
+          OUTPUT="target/release/bundle/appimage/BongoCat_${VERSION}_amd64.AppImage"
 
           echo "==> Removendo bibliotecas Wayland empacotadas..."
 
@@ -177,18 +181,20 @@ jobs:
 
           rm -f "$OUTPUT"
 
-          ARCH=x86_64 ./appimagetool.AppImage "$APPDIR" "$OUTPUT"
+          ARCH=x86_64 ./appimagetool.AppImage \
+            "$APPDIR" \
+            "$OUTPUT"
 
           chmod +x "$OUTPUT"
 
           echo "==> AppImage criado:"
           ls -lh "$OUTPUT"
 
-          echo "==> Assinando AppImage..."
+          echo "==> Assinando..."
 
           pnpm tauri signer sign "$OUTPUT"
 
-          echo "==> Enviando AppImage para o release..."
+          echo "==> Enviando para o GitHub Release..."
 
           gh release upload \
             "$GITHUB_REF_NAME" \
