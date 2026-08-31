@@ -11,10 +11,12 @@ jobs:
     permissions:
       contents: write
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - name: Set output
         id: vars
         run: echo "tag=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
@@ -25,7 +27,6 @@ jobs:
           node-version: 22
 
       - name: Generate changelog
-        id: create_release
         run: npx changelogithub --draft --name ${{ steps.vars.outputs.tag }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -34,21 +35,29 @@ jobs:
     needs: create-release
     permissions:
       contents: write
+
     strategy:
       fail-fast: false
+
       matrix:
         include:
           - platform: macos-latest
             target: aarch64-apple-darwin
+
           - platform: macos-latest
             target: x86_64-apple-darwin
+
           - platform: windows-latest
             target: x86_64-pc-windows-msvc
+
           - platform: windows-latest
             target: aarch64-pc-windows-msvc
+
           - platform: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+
     runs-on: ${{ matrix.platform }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -78,12 +87,23 @@ jobs:
         if: startsWith(matrix.platform, 'ubuntu')
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev libudev-dev patchelf xdg-utils libpipewire-0.3-dev libspa-0.2-dev libasound2-dev libclang-dev
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            libudev-dev \
+            patchelf \
+            xdg-utils \
+            libpipewire-0.3-dev \
+            libspa-0.2-dev \
+            libasound2-dev \
+            libclang-dev
 
       - name: Install front-end dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build the app
+      - name: Build Windows/macOS
+        if: matrix.platform != 'ubuntu-latest'
         uses: tauri-apps/tauri-action@v0
         env:
           CI: false
@@ -98,3 +118,80 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: --target ${{ matrix.target }}
+
+      - name: Build Linux AppImage
+        if: matrix.platform == 'ubuntu-latest'
+        uses: tauri-apps/tauri-action@v0
+        continue-on-error: true
+        env:
+          CI: false
+          PLATFORM: ${{ matrix.platform }}
+          GITHUB_TOKEN: ${{ github.token }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: BongoCat ${{ github.ref_name }}
+          releaseBody: ''
+          releaseDraft: true
+          prerelease: false
+          args: --target ${{ matrix.target }} --bundles appimage
+
+      - name: Rebuild Linux AppImage
+        if: matrix.platform == 'ubuntu-latest'
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+
+          APPDIR="target/release/bundle/appimage/BongoCat.AppDir"
+          VERSION="${GITHUB_REF_NAME#v}"
+          OUTPUT="target/release/bundle/appimage/BongoCat_${VERSION}_amd64.AppImage"
+
+          echo "==> Procurando AppDir..."
+
+          if [ ! -d "$APPDIR" ]; then
+            echo "ERRO: AppDir não encontrado:"
+            echo "$APPDIR"
+            exit 1
+          fi
+
+          echo "==> Removendo bibliotecas Wayland empacotadas..."
+
+          rm -f "$APPDIR/usr/lib/libwayland-client.so"*
+          rm -f "$APPDIR/usr/lib/libwayland-cursor.so"*
+          rm -f "$APPDIR/usr/lib/libwayland-egl.so"*
+          rm -f "$APPDIR/usr/lib/libwayland-server.so"*
+
+          echo "==> Baixando appimagetool..."
+
+          curl -L \
+            -o appimagetool.AppImage \
+            https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+
+          chmod +x appimagetool.AppImage
+
+          echo "==> Criando AppImage..."
+
+          rm -f "$OUTPUT"
+
+          ARCH=x86_64 ./appimagetool.AppImage "$APPDIR" "$OUTPUT"
+
+          chmod +x "$OUTPUT"
+
+          echo "==> AppImage criado:"
+          ls -lh "$OUTPUT"
+
+          echo "==> Assinando AppImage..."
+
+          pnpm tauri signer sign "$OUTPUT"
+
+          echo "==> Enviando AppImage para o release..."
+
+          gh release upload \
+            "$GITHUB_REF_NAME" \
+            "$OUTPUT" \
+            "$OUTPUT.sig" \
+            --clobber

@@ -1,39 +1,39 @@
-# 下载指南
+# Download Guide
 
-## 系统要求
+## System Requirements
 
-- macOS 12 或更高版本。
-- Windows 10 或更高版本。
-- Linux 带有 X11 环境。
+- macOS 12 or later.
+- Windows 10 or later.
+- Linux with X11 environment.
 
 ## macOS
 
-### 手动下载
+### Manual Download
 
-- Apple Silicon：下载 `BongoCat_aarch64.dmg`
-- Intel Chip：下载 `BongoCat_x64.dmg`
+- Apple Silicon: Download `BongoCat_aarch64.dmg`
+- Intel Chip: Download `BongoCat_x64.dmg`
 
-### Homebrew 下载
+### Homebrew Download
 
-1. 添加 BongoCat 的 tap 源：
+1. Add the BongoCat tap:
 
 ```bash
 brew tap ayangweb/BongoCat
 ```
 
-2. 安装：
+2. Install:
 
 ```bash
 brew install --no-quarantine bongo-cat
 ```
 
-3. 更新：
+3. Update:
 
 ```bash
 brew upgrade bongo-cat
 ```
 
-4. 卸载：
+4. Uninstall:
 
 ```bash
 brew uninstall --cask bongo-cat
@@ -43,23 +43,23 @@ brew untap ayangweb/BongoCat
 
 ## Windows
 
-- 64 位系统：下载 `BongoCat_x64.exe`
-- 32 位系统：下载 `BongoCat_x86.exe`
-- ARM64 架构：下载 `BongoCat_arm64.exe`
+- 64-bit system: Download `BongoCat_x64.exe`
+- 32-bit system: Download `BongoCat_x86.exe`
+- ARM64 architecture: Download `BongoCat_arm64.exe`
 
 ## Linux(X11)
 
-### 手动下载
+### Manual Download
 
-- 64 位系统：
-  - Debian / Ubuntu：下载 `BongoCat_amd64.deb`
-  - Fedora / RHEL：下载 `BongoCat_x86_64.rpm`
-  - 通用版本：下载 `BongoCat_amd64.AppImage`
-- ARM64 架构：
-  - Debian / Ubuntu：下载 `BongoCat_arm64.deb`
-  - Fedora / RHEL：下载 `BongoCat_aarch64.rpm`
-  - 通用版本：下载 `BongoCat_aarch64.AppImage`
+- 64-bit system:
+  - Debian / Ubuntu: Download `BongoCat_amd64.deb`
+  - Fedora / RHEL: Download `BongoCat_x86_64.rpm`
+  - Universal version: Download `BongoCat_amd64.AppImage`
+- ARM64 architecture:
+  - Debian / Ubuntu: Download `BongoCat_arm64.deb`
+  - Fedora / RHEL: Download `BongoCat_aarch64.rpm`
+  - Universal version: Download `BongoCat_aarch64.AppImage`
 
-### AUR 下载
+### AUR Download
 
 - Manjaro / ArchLinux: `yay -S bongo-cat`
