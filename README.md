@@ -25,7 +25,7 @@
 
 | macOS | Windows | Linux (X11) | Linux (Wayland) |
 | :---: | :---: | :---: | :---: |
-| ![macOS](https://i0.hdslb.com/bfs/openplatform/dff276b96d49c5d6c431b74b531aab72191b3d87.png) | ![Windows](https://i0.hdslb.com/bfs/openplatform/a4149b753856ee7f401989da902cf3b5ad35b39e.png) | ![Linux X11](https://i0.hdslb.com/bfs/openplatform/3b49f961819d3ff63b2b80251c1cc13c27e986b0.png) | ![Linux Wayland](https://github.com/user-attachments/assets/d4c839dc-b7e4-4e98-93af-7868a87af5fa) |
+| <img src="https://i0.hdslb.com/bfs/openplatform/dff276b96d49c5d6c431b74b531aab72191b3d87.png" height="160" alt="macOS" /> | <img src="https://i0.hdslb.com/bfs/openplatform/a4149b753856ee7f401989da902cf3b5ad35b39e.png" height="160" alt="Windows" /> | <img src="https://i0.hdslb.com/bfs/openplatform/3b49f961819d3ff63b2b80251c1cc13c27e986b0.png" height="160" alt="Linux X11" /> | <img src="https://github.com/user-attachments/assets/d4c839dc-b7e4-4e98-93af-7868a87af5fa" height="160" alt="Linux Wayland" /> |
 
 ---
 
@@ -58,6 +58,8 @@ For detailed platform-specific instructions, see the **[Download & Installation 
 ---
 
 ##  Custom Models & Tools
+> ### **I'm working on a .cmo3 file that allows you to modify the cat however you like.** <br />
+> ### **The project uses Live2D and the Cubism Editor to run.**
 
 ### Community Models
 Explore and share community-made models:
