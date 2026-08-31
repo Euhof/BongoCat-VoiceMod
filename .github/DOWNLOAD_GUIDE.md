@@ -4,7 +4,7 @@
 
 - macOS 12 or later.
 - Windows 10 or later.
-- Linux with X11 environment.
+- Linux.
 
 ## macOS
 
@@ -47,7 +47,7 @@ brew untap ayangweb/BongoCat
 - 32-bit system: Download `BongoCat_x86.exe`
 - ARM64 architecture: Download `BongoCat_arm64.exe`
 
-## Linux(X11)
+## Linux
 
 ### Manual Download
 
@@ -55,11 +55,3 @@ brew untap ayangweb/BongoCat
   - Debian / Ubuntu: Download `BongoCat_amd64.deb`
   - Fedora / RHEL: Download `BongoCat_x86_64.rpm`
   - Universal version: Download `BongoCat_amd64.AppImage`
-- ARM64 architecture:
-  - Debian / Ubuntu: Download `BongoCat_arm64.deb`
-  - Fedora / RHEL: Download `BongoCat_aarch64.rpm`
-  - Universal version: Download `BongoCat_aarch64.AppImage`
-
-### AUR Download
-
-- Manjaro / ArchLinux: `yay -S bongo-cat`
