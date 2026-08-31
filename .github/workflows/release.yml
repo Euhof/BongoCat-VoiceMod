@@ -159,13 +159,26 @@ jobs:
           rm -rf squashfs-root
           "$APPIMAGE" --appimage-extract
 
-          echo "==> Removendo libwayland empacotada..."
-          find squashfs-root -name 'libwayland-*.so*' -print -delete
+          echo "==> Removendo libs que conflitam com o host..."
+          find squashfs-root \( \
+            -name 'libwayland-*.so*' -o \
+            -name 'libpipewire*.so*' -o \
+            -name 'libspa-*.so*' -o \
+            -name 'libasound.so*' -o \
+            -name 'libgst*.so*' -o \
+            -name 'libglib-2.0.so*' -o \
+            -name 'libgobject-2.0.so*' -o \
+            -name 'libgio-2.0.so*' -o \
+            -name 'libgmodule-2.0.so*' -o \
+            -name 'libgthread-2.0.so*' \
+          \) -print -delete
 
-          echo "==> Ajustando GDK_BACKEND..."
-          grep -RIl 'GDK_BACKEND' squashfs-root || true
+          echo "==> Ajustando AppRun..."
           find squashfs-root -type f \( -name 'AppRun' -o -name '*.sh' \) -print0 \
-            | xargs -0 sed -i 's/export GDK_BACKEND=x11/export GDK_BACKEND="${GDK_BACKEND:-wayland,x11}"/g' || true
+            | xargs -0 sed -i \
+              -e '/GST_PLUGIN_SYSTEM_PATH/d' \
+              -e 's/export GDK_BACKEND=x11/export GDK_BACKEND="${GDK_BACKEND:-wayland,x11}"/g' \
+            || true
 
           echo "==> Baixando appimagetool..."
           curl -fsSL -o appimagetool.AppImage \
