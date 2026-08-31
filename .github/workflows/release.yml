@@ -122,7 +122,6 @@ jobs:
       - name: Build Linux AppImage
         if: matrix.platform == 'ubuntu-latest'
         uses: tauri-apps/tauri-action@v0
-        continue-on-error: true
         env:
           CI: false
           PLATFORM: ${{ matrix.platform }}
@@ -138,68 +137,48 @@ jobs:
           args: --target ${{ matrix.target }} --bundles appimage
 
       - name: Rebuild Linux AppImage
-        if: matrix.platform == 'ubuntu-22.04'
+        if: startsWith(matrix.platform, 'ubuntu')
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           GH_TOKEN: ${{ github.token }}
+          APPIMAGE_EXTRACT_AND_RUN: 1
         run: |
-          set -e
+          set -euo pipefail
 
-          ROOT="$GITHUB_WORKSPACE"
-
-          APPDIR="$(find "$ROOT/target" -type d -name 'BongoCat.AppDir' -print -quit)"
-
-          if [ -z "$APPDIR" ]; then
-            echo "ERRO: AppDir não encontrado."
-            find "$ROOT/target" -type d -name '*AppDir*' || true
+          APPIMAGE="$(find "$GITHUB_WORKSPACE" -type f -name 'BongoCat*.AppImage' | head -n1)"
+          if [ -z "$APPIMAGE" ]; then
+            echo "ERRO: AppImage não encontrado"
+            find "$GITHUB_WORKSPACE" -name '*.AppImage' || true
             exit 1
           fi
 
-          echo "==> AppDir:"
-          echo "$APPDIR"
+          echo "==> AppImage original: $APPIMAGE"
+          chmod +x "$APPIMAGE"
 
-          VERSION="${GITHUB_REF_NAME#v}"
-          OUTPUT="$ROOT/target/release/bundle/appimage/BongoCat_${VERSION}_amd64.AppImage"
+          rm -rf squashfs-root
+          "$APPIMAGE" --appimage-extract
 
-          mkdir -p "$(dirname "$OUTPUT")"
+          echo "==> Removendo libwayland empacotada..."
+          find squashfs-root -name 'libwayland-*.so*' -print -delete
 
-          echo "==> Removendo Wayland empacotado..."
-
-          rm -f "$APPDIR/usr/lib/libwayland-client.so"*
-          rm -f "$APPDIR/usr/lib/libwayland-cursor.so"*
-          rm -f "$APPDIR/usr/lib/libwayland-egl.so"*
-          rm -f "$APPDIR/usr/lib/libwayland-server.so"*
+          echo "==> Ajustando GDK_BACKEND..."
+          grep -RIl 'GDK_BACKEND' squashfs-root || true
+          find squashfs-root -type f \( -name 'AppRun' -o -name '*.sh' \) -print0 \
+            | xargs -0 sed -i 's/export GDK_BACKEND=x11/export GDK_BACKEND="${GDK_BACKEND:-wayland,x11}"/g' || true
 
           echo "==> Baixando appimagetool..."
-
-          curl -fL \
-            -o "$ROOT/appimagetool.AppImage" \
+          curl -fsSL -o appimagetool.AppImage \
             https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool.AppImage
 
-          chmod +x "$ROOT/appimagetool.AppImage"
-
-          echo "==> Criando AppImage..."
-
-          rm -f "$OUTPUT"
-
-          ARCH=x86_64 "$ROOT/appimagetool.AppImage" \
-            "$APPDIR" \
-            "$OUTPUT"
-
-          chmod +x "$OUTPUT"
-
-          echo "==> AppImage criado:"
-          ls -lh "$OUTPUT"
+          echo "==> Reempacotando..."
+          rm -f "$APPIMAGE"
+          ARCH=x86_64 ./appimagetool.AppImage squashfs-root "$APPIMAGE"
+          chmod +x "$APPIMAGE"
 
           echo "==> Assinando..."
+          pnpm tauri signer sign "$APPIMAGE"
 
-          pnpm tauri signer sign "$OUTPUT"
-
-          echo "==> Enviando para o Release..."
-
-          gh release upload \
-            "$GITHUB_REF_NAME" \
-            "$OUTPUT" \
-            "$OUTPUT.sig" \
-            --clobber
+          echo "==> Enviando para o release ${{ github.ref_name }}..."
+          gh release upload "${{ github.ref_name }}" "$APPIMAGE" "$APPIMAGE.sig" --clobber
