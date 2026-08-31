@@ -138,7 +138,7 @@ jobs:
           args: --target ${{ matrix.target }} --bundles appimage
 
       - name: Rebuild Linux AppImage
-        if: matrix.platform == 'ubuntu-latest'
+        if: matrix.platform == 'ubuntu-22.04'
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
@@ -146,23 +146,25 @@ jobs:
         run: |
           set -e
 
-          echo "==> Procurando AppDir..."
+          ROOT="$GITHUB_WORKSPACE"
 
-          APPDIR="$(find target -type d -name 'BongoCat.AppDir' -print -quit)"
+          APPDIR="$(find "$ROOT/target" -type d -name 'BongoCat.AppDir' -print -quit)"
 
           if [ -z "$APPDIR" ]; then
-            echo "ERRO: nenhum AppDir encontrado."
-            find target/release/bundle -maxdepth 4 -type d 2>/dev/null || true
+            echo "ERRO: AppDir não encontrado."
+            find "$ROOT/target" -type d -name '*AppDir*' || true
             exit 1
           fi
 
-          echo "==> AppDir encontrado:"
+          echo "==> AppDir:"
           echo "$APPDIR"
 
           VERSION="${GITHUB_REF_NAME#v}"
-          OUTPUT="target/release/bundle/appimage/BongoCat_${VERSION}_amd64.AppImage"
+          OUTPUT="$ROOT/target/release/bundle/appimage/BongoCat_${VERSION}_amd64.AppImage"
 
-          echo "==> Removendo bibliotecas Wayland empacotadas..."
+          mkdir -p "$(dirname "$OUTPUT")"
+
+          echo "==> Removendo Wayland empacotado..."
 
           rm -f "$APPDIR/usr/lib/libwayland-client.so"*
           rm -f "$APPDIR/usr/lib/libwayland-cursor.so"*
@@ -171,17 +173,17 @@ jobs:
 
           echo "==> Baixando appimagetool..."
 
-          curl -L \
-            -o appimagetool.AppImage \
+          curl -fL \
+            -o "$ROOT/appimagetool.AppImage" \
             https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
 
-          chmod +x appimagetool.AppImage
+          chmod +x "$ROOT/appimagetool.AppImage"
 
           echo "==> Criando AppImage..."
 
           rm -f "$OUTPUT"
 
-          ARCH=x86_64 ./appimagetool.AppImage \
+          ARCH=x86_64 "$ROOT/appimagetool.AppImage" \
             "$APPDIR" \
             "$OUTPUT"
 
@@ -194,7 +196,7 @@ jobs:
 
           pnpm tauri signer sign "$OUTPUT"
 
-          echo "==> Enviando para o GitHub Release..."
+          echo "==> Enviando para o Release..."
 
           gh release upload \
             "$GITHUB_REF_NAME" \
