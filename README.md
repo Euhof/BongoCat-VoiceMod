@@ -2,7 +2,7 @@
 
 <div align="center">
   <div>
-    <p><b>Modified by: Euhof 🇧🇷</b></p>
+    <p align="left"><b>Modified by: Euhof 🇧🇷</b></p>
     <img width="1600" height="900" alt="bongo_show" src="https://github.com/user-attachments/assets/91babfb2-a9c4-4e62-80ca-9ef22921ec98" />
     <br />
   </div>
@@ -16,8 +16,8 @@
 
   <p>
     <a href="./LICENSE"><img src="https://img.shields.io/github/license/Euhof/BongoCat-VoiceMod?style=flat-square" /></a>
-    <a href="https://github.com/Euhof/BongoCat-VoiceMod/releases"><img src="https://img.shields.io/github/release/Euhof/BongoCat-VoiceMod?style=flat-square"/></a>
-    <a href="https://github.com/Euhof/BongoCat-VoiceMod/releases"><img src="https://img.shields.io/github/downloads/SEU_USUARIO/BongoCat/total?style=flat-square"/></a>
+    <a href="https://github.com/Euhof/BongoCat-VoiceMod/releases/latest"><img src="https://img.shields.io/github/release/Euhof/BongoCat-VoiceMod?style=flat-square"/></a>
+    <a href="https://github.com/Euhof/BongoCat-VoiceMod/releases"><img src="https://img.shields.io/github/downloads/Euhof/BongoCat-VoiceMod/total?style=flat-square"/></a>
   </p>
   
   <p><b>An enhanced, cross-platform Bongo Cat overlay with reactive audio, voice effects, and full Wayland & X11 support.</b></p>
