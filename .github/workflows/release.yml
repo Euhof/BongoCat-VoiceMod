@@ -166,22 +166,35 @@ jobs:
 
           chmod +x "$APPIMAGE"
 
+          echo "==> Extraindo AppImage..."
+
           rm -rf squashfs-root
           "$APPIMAGE" --appimage-extract
 
-          echo "==> Removendo apenas bibliotecas incompatíveis..."
+          echo "==> Bibliotecas Wayland presentes antes da correção:"
+          find squashfs-root/usr/lib -maxdepth 1 \
+            -type f \
+            \( \
+              -name 'libwayland*.so*' \
+            \) \
+            -print || true
+
+          echo "==> Removendo bibliotecas Wayland empacotadas..."
 
           find squashfs-root/usr/lib -type f \( \
-            -name 'libwayland-*.so*' -o \
-            -name 'libpipewire*.so*' -o \
-            -name 'libspa-*.so*' -o \
-            -name 'libasound.so*' -o \
-            -name 'libasound_module_pcm_pipewire*.so*' \
+            -name 'libwayland-client.so*' -o \
+            -name 'libwayland-cursor.so*' -o \
+            -name 'libwayland-egl.so*' -o \
+            -name 'libwayland-server.so*' \
           \) -print -delete
 
-          echo "==> Mantendo GLib/GObject/GIO/GStreamer..."
+          echo "==> Bibliotecas Wayland restantes:"
+          find squashfs-root/usr/lib \
+            -type f \
+            -name 'libwayland*.so*' \
+            -print || true
 
-          echo "==> Ajustando AppRun..."
+          echo "==> Corrigindo GDK_BACKEND..."
 
           find squashfs-root -type f \
             \( -name 'AppRun' -o -name '*.sh' \) \
@@ -189,6 +202,13 @@ jobs:
             | xargs -0 sed -i \
               -e 's/export GDK_BACKEND=x11/export GDK_BACKEND="${GDK_BACKEND:-wayland,x11}"/g' \
             || true
+
+          echo "==> Verificando AppRun..."
+
+          grep -R "GDK_BACKEND" \
+            squashfs-root/AppRun \
+            squashfs-root/usr/bin \
+            2>/dev/null || true
 
           echo "==> Baixando appimagetool..."
 
