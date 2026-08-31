@@ -181,12 +181,17 @@ jobs:
 
           echo "==> Removendo bibliotecas Wayland empacotadas..."
 
-          find squashfs-root/usr/lib -type f \( \
-            -name 'libwayland-client.so*' -o \
-            -name 'libwayland-cursor.so*' -o \
-            -name 'libwayland-egl.so*' -o \
-            -name 'libwayland-server.so*' \
-          \) -print -delete
+          find squashfs-root/usr/lib \
+            -type f \
+            \( \
+              -name 'libwayland-client.so*' \
+              -o -name 'libwayland-cursor.so*' \
+              -o -name 'libwayland-egl.so*' \
+              -o -name 'libwayland-server.so*' \
+              -o -name 'libpipewire*.so*' \
+              -o -name 'libspa-*.so*' \
+            \) \
+            -print -delete
 
           echo "==> Bibliotecas Wayland restantes:"
           find squashfs-root/usr/lib \
