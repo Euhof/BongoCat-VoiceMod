@@ -97,7 +97,11 @@ jobs:
             libpipewire-0.3-dev \
             libspa-0.2-dev \
             libasound2-dev \
-            libclang-dev
+            libclang-dev \
+            gstreamer1.0-tools \
+            gstreamer1.0-plugins-base \
+            gstreamer1.0-plugins-good \
+            gstreamer1.0-pipewire
 
       - name: Install front-end dependencies
         run: pnpm install --frozen-lockfile
@@ -146,52 +150,73 @@ jobs:
         run: |
           set -euo pipefail
 
-          APPIMAGE="$(find "$GITHUB_WORKSPACE" -type f -name 'BongoCat*.AppImage' | head -n1)"
+          APPIMAGE="$(find "$GITHUB_WORKSPACE" \
+            -type f \
+            -name 'BongoCat*.AppImage' \
+            | head -n1)"
+
           if [ -z "$APPIMAGE" ]; then
             echo "ERRO: AppImage não encontrado"
             find "$GITHUB_WORKSPACE" -name '*.AppImage' || true
             exit 1
           fi
 
-          echo "==> AppImage original: $APPIMAGE"
+          echo "==> AppImage original:"
+          echo "$APPIMAGE"
+
           chmod +x "$APPIMAGE"
 
           rm -rf squashfs-root
           "$APPIMAGE" --appimage-extract
 
-          echo "==> Removendo libs que conflitam com o host..."
-          find squashfs-root \( \
+          echo "==> Removendo apenas bibliotecas incompatíveis..."
+
+          find squashfs-root/usr/lib -type f \( \
             -name 'libwayland-*.so*' -o \
             -name 'libpipewire*.so*' -o \
             -name 'libspa-*.so*' -o \
             -name 'libasound.so*' -o \
-            -name 'libgst*.so*' -o \
-            -name 'libglib-2.0.so*' -o \
-            -name 'libgobject-2.0.so*' -o \
-            -name 'libgio-2.0.so*' -o \
-            -name 'libgmodule-2.0.so*' -o \
-            -name 'libgthread-2.0.so*' \
+            -name 'libasound_module_pcm_pipewire*.so*' \
           \) -print -delete
 
+          echo "==> Mantendo GLib/GObject/GIO/GStreamer..."
+
           echo "==> Ajustando AppRun..."
-          find squashfs-root -type f \( -name 'AppRun' -o -name '*.sh' \) -print0 \
+
+          find squashfs-root -type f \
+            \( -name 'AppRun' -o -name '*.sh' \) \
+            -print0 \
             | xargs -0 sed -i \
-              -e '/GST_PLUGIN_SYSTEM_PATH/d' \
               -e 's/export GDK_BACKEND=x11/export GDK_BACKEND="${GDK_BACKEND:-wayland,x11}"/g' \
             || true
 
           echo "==> Baixando appimagetool..."
-          curl -fsSL -o appimagetool.AppImage \
+
+          curl -fsSL \
+            -o appimagetool.AppImage \
             https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+
           chmod +x appimagetool.AppImage
 
           echo "==> Reempacotando..."
+
           rm -f "$APPIMAGE"
-          ARCH=x86_64 ./appimagetool.AppImage squashfs-root "$APPIMAGE"
+
+          ARCH=x86_64 \
+            ./appimagetool.AppImage \
+            squashfs-root \
+            "$APPIMAGE"
+
           chmod +x "$APPIMAGE"
 
           echo "==> Assinando..."
+
           pnpm tauri signer sign "$APPIMAGE"
 
-          echo "==> Enviando para o release ${{ github.ref_name }}..."
-          gh release upload "${{ github.ref_name }}" "$APPIMAGE" "$APPIMAGE.sig" --clobber
+          echo "==> Enviando para o release..."
+
+          gh release upload \
+            "${{ github.ref_name }}" \
+            "$APPIMAGE" \
+            "$APPIMAGE.sig" \
+            --clobber
